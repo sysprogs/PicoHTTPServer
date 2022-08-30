@@ -13,8 +13,10 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(PicoHTTPServer
-        PicoHTTPServer.c
-        dhcpserver/dhcpserver.c)
+        main.c
+        dhcpserver/dhcpserver.c
+        dns/dnsserver.c
+        httpserver.c)
 target_compile_definitions(PicoHTTPServer PRIVATE
         WIFI_SSID=\"${WIFI_SSID}\"
         WIFI_PASSWORD=\"${WIFI_PASSWORD}\"

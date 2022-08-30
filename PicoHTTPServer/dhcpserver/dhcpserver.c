@@ -35,6 +35,7 @@
 #include "cyw43_config.h"
 #include "dhcpserver.h"
 #include "lwip/udp.h"
+#include "../debug_printf.h"
 
 #define DHCPDISCOVER    (1)
 #define DHCPOFFER       (2)
@@ -58,12 +59,12 @@
 #define DHCP_OPT_MAX_MSG_SIZE       (57)
 #define DHCP_OPT_VENDOR_CLASS_ID    (60)
 #define DHCP_OPT_CLIENT_ID          (61)
+#define DHCP_OPT_CAPTIVE_PORTAL     (114)
 #define DHCP_OPT_END                (255)
 
 #define PORT_DHCP_SERVER (67)
 #define PORT_DHCP_CLIENT (68)
 
-#define DEFAULT_DNS MAKE_IP4(8, 8, 8, 8)
 #define DEFAULT_LEASE_TIME_S (24 * 60 * 60) // in seconds
 
 #define MAC_LEN (6)
@@ -263,7 +264,7 @@ static void dhcp_server_process(void *arg, struct udp_pcb *upcb, struct pbuf *p,
             d->lease[yi].expiry = (cyw43_hal_ticks_ms() + DEFAULT_LEASE_TIME_S * 1000) >> 16;
             dhcp_msg.yiaddr[3] = DHCPS_BASE_IP + yi;
             opt_write_u8(&opt, DHCP_OPT_MSG_TYPE, DHCPACK);
-            printf("DHCPS: client connected: MAC=%02x:%02x:%02x:%02x:%02x:%02x IP=%u.%u.%u.%u\n",
+	        debug_printf("DHCPS: client connected: MAC=%02x:%02x:%02x:%02x:%02x:%02x IP=%u.%u.%u.%u\n",
                 dhcp_msg.chaddr[0], dhcp_msg.chaddr[1], dhcp_msg.chaddr[2], dhcp_msg.chaddr[3], dhcp_msg.chaddr[4], dhcp_msg.chaddr[5],
                 dhcp_msg.yiaddr[0], dhcp_msg.yiaddr[1], dhcp_msg.yiaddr[2], dhcp_msg.yiaddr[3]);
             break;
@@ -276,7 +277,15 @@ static void dhcp_server_process(void *arg, struct udp_pcb *upcb, struct pbuf *p,
     opt_write_n(&opt, DHCP_OPT_SERVER_ID, 4, &d->ip.addr);
     opt_write_n(&opt, DHCP_OPT_SUBNET_MASK, 4, &d->nm.addr);
     opt_write_n(&opt, DHCP_OPT_ROUTER, 4, &d->ip.addr); // aka gateway; can have mulitple addresses
-    opt_write_u32(&opt, DHCP_OPT_DNS, DEFAULT_DNS); // can have mulitple addresses
+    opt_write_n(&opt, DHCP_OPT_DNS, 4, &d->ip.addr); // can have mulitple addresses
+	
+#if 0
+	char url[] = "http://picohttp/captive-portal/api";
+	//len = sprintf(url, "http://%s/captive-portal/api", ip4addr_ntoa(&d->ip));
+	len = sizeof(url) - 1;
+	
+    opt_write_n(&opt, DHCP_OPT_CAPTIVE_PORTAL, len, url); // can have mulitple addresses
+#endif
     opt_write_u32(&opt, DHCP_OPT_IP_LEASE_TIME, DEFAULT_LEASE_TIME_S);
     *opt++ = DHCP_OPT_END;
     dhcp_socket_sendto(&d->udp, &dhcp_msg, opt - (uint8_t *)&dhcp_msg, 0xffffffff, PORT_DHCP_CLIENT);
