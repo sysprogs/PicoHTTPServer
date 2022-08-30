@@ -16,7 +16,8 @@ add_executable(PicoHTTPServer
         main.c
         dhcpserver/dhcpserver.c
         dns/dnsserver.c
-        httpserver.c)
+        httpserver.c
+        server_settings.c)
 target_compile_definitions(PicoHTTPServer PRIVATE
         WIFI_SSID=\"${WIFI_SSID}\"
         WIFI_PASSWORD=\"${WIFI_PASSWORD}\"

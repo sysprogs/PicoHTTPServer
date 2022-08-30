@@ -8,6 +8,15 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include "../debug_printf.h"
+#include "../server_settings.h"
+
+static struct
+{
+	uint32_t primary_ip;
+	uint32_t secondary_ip;
+	const char *host_name; 
+	const char *domain_name;
+} s_DHCPServerSettings;
 
 //DNS protocol definitions and parsing/formatting logic from https://github.com/devyte/ESPAsyncDNSServer/blob/master/src/ESPAsyncDNSServer.cpp
 struct DNSHeader
@@ -37,43 +46,74 @@ struct IPResourceRecord
 	uint32_t Data;
 } __attribute__((packed));
 
-//Translates a domain name from a DNS request into a human-readable null-terminated string.
-static int translate_domain_name(uint8_t *name, size_t max_input_size, char *result, size_t result_size)
+static const char *get_encoded_domain_name_component(const uint8_t *buffer, size_t *offset, size_t max_input_size, int *component_len)
 {
-	if (!result || !result_size)
-		return 0;
-	
-	size_t ptr = 0;
-	for (int i = 0; i < max_input_size;)
+	for (int i = *offset; i < max_input_size;)
 	{
-		if (name[i] & 0xC0)
-			return 0;	//DNS pointers are not implemented
-		uint8_t len = name[i] & 0x3F;
-		
-		if ((i + len) > max_input_size || (ptr + len) >= (result_size - 1))
-			return 0;
-		
-		if (!len)
+		if (buffer[i] & 0xC0)
 		{
-			result[ptr] = 0;
-			return ptr;
+			i = ((buffer[i] & 0x3F) << 8) | (buffer[i+1]);
+			continue;
 		}
 		
-		if (ptr)
-			result[ptr++] = '.';
+		uint8_t len = buffer[i] & 0x3F;
 		
-		for (; len > 0; len--)
-			result[ptr++] = name[i++];
+		if ((i + len) >= max_input_size)
+			return NULL;
+		
+		if (!len)
+			return NULL;
+		
+		*offset = ++i + len;
+		*component_len = len;
+		return (const char *)buffer + i;
 	}
 	
-	return 0;
+	return NULL;
+}
+
+static uint32_t get_address_for_encoded_domain(const uint8_t *buffer, size_t offset, size_t buffer_size)
+{
+	debug_printf("DNS server: ");
+	bool match = false;
+	
+	int domain_off = 0, domain_len = 0;
+	const char *domain_comp = get_next_domain_name_component(s_DHCPServerSettings.domain_name, &domain_off, &domain_len);
+	
+	for (int i = 0; ; i++)
+	{
+		int len;
+		const char *component = get_encoded_domain_name_component(buffer, &offset, buffer_size, &len);
+		if (component)
+		{
+			if (i)
+				debug_write(".", 1);
+			debug_write(component, len);
+			
+			if (i == 0 && !strncasecmp(component, s_DHCPServerSettings.host_name, len))
+				match = true;
+			else if (i > 0 && match && domain_comp && len == domain_len && !strncasecmp(component, domain_comp, len))
+			{
+				match = true;
+				domain_comp = get_next_domain_name_component(s_DHCPServerSettings.domain_name, &domain_off, &domain_len);
+			}
+			else
+				match = false;
+		}
+		else
+		{
+			uint32_t ip = match ? s_DHCPServerSettings.primary_ip : s_DHCPServerSettings.secondary_ip;
+			debug_printf(" -> %d.%d.%d.%d\n", (ip >> 0) & 0xFF, (ip >> 8) & 0xFF, (ip >> 16) & 0xFF, (ip >> 24) & 0xFF);
+			return ip;
+		}
+	}
 }
 
 #define DNS_QR_QUERY 0
 #define DNS_QR_RESPONSE 1
 #define DNS_OPCODE_QUERY 0
 
-static void dns_server_thread(void *arg)
+static void dns_server_thread(void *unused)
 {
 	int server_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	struct sockaddr_in listen_addr =
@@ -115,12 +155,6 @@ static void dns_server_thread(void *arg)
 			packet.header.NSCount == 0 &&
 			packet.header.ARCount == 0)
 		{
-			char domain[32];
-			if (translate_domain_name((uint8_t *)packet.payload, done - sizeof(packet.header), domain, sizeof(domain)))
-				debug_printf("DNS request for %s\n", domain);
-			else
-				debug_printf("Unsupported (but valid) DNS request\n");
-			
 			packet.header.QR = DNS_QR_RESPONSE;
 			packet.header.ANCount = ntohs(1);
 			
@@ -129,16 +163,13 @@ static void dns_server_thread(void *arg)
 			packet.payload[ptr++] = sizeof(packet.header); //The pointer points to the original domain name
 			
 			struct IPResourceRecord rec = {
-				.Type = htons(1),
-				//A	
+				.Type = htons(1), //A	
 				.Class = htons(1), //IN
 				.TTL = htonl(1), //1 second
 				.DataLength = htons(4),
-				.Data = (uint32_t)arg
 			};
 			
-			if (!strstr(domain, "picohttp"))
-				rec.Data = 0x01010101;
+			rec.Data = get_address_for_encoded_domain((char *)&packet.header, sizeof(packet.header), done);
 			
 			memcpy(packet.payload + ptr, &rec, sizeof(rec));
 			ptr += sizeof(rec);
@@ -147,8 +178,16 @@ static void dns_server_thread(void *arg)
 	}
 }
 
-void dns_server_init(ip4_addr_t *addr)
+void dns_server_init(uint32_t primary_ip,
+	uint32_t secondary_ip,
+	const char *host_name, 
+	const char *domain_name)
 {
+	s_DHCPServerSettings.primary_ip = primary_ip;
+	s_DHCPServerSettings.secondary_ip = secondary_ip;
+	s_DHCPServerSettings.host_name = host_name;
+	s_DHCPServerSettings.domain_name = domain_name;
+	
 	TaskHandle_t task;
-	xTaskCreate(dns_server_thread, "DNS server", configMINIMAL_STACK_SIZE, (void *)addr->addr, tskIDLE_PRIORITY + 2, &task);
+	xTaskCreate(dns_server_thread, "DNS server", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, &task);
 }

@@ -51,6 +51,7 @@
 #define DHCP_OPT_ROUTER             (3)
 #define DHCP_OPT_DNS                (6)
 #define DHCP_OPT_HOST_NAME          (12)
+#define DHCP_OPT_DOMAIN_NAME        (15)
 #define DHCP_OPT_REQUESTED_IP       (50)
 #define DHCP_OPT_IP_LEASE_TIME      (51)
 #define DHCP_OPT_MSG_TYPE           (53)
@@ -59,6 +60,10 @@
 #define DHCP_OPT_MAX_MSG_SIZE       (57)
 #define DHCP_OPT_VENDOR_CLASS_ID    (60)
 #define DHCP_OPT_CLIENT_ID          (61)
+
+/*Note that on Android, the captive portal option will only work via HTTPS.
+  See this file for details: https://cs.android.com/android/platform/superproject/+/master:packages/modules/NetworkStack/src/com/android/server/connectivity/NetworkMonitor.java
+*/
 #define DHCP_OPT_CAPTIVE_PORTAL     (114)
 #define DHCP_OPT_END                (255)
 
@@ -152,7 +157,7 @@ static uint8_t *opt_find(uint8_t *opt, uint8_t cmd) {
     return NULL;
 }
 
-static void opt_write_n(uint8_t **opt, uint8_t cmd, size_t n, void *data) {
+static void opt_write_n(uint8_t **opt, uint8_t cmd, size_t n, const void *data) {
     uint8_t *o = *opt;
     *o++ = cmd;
     *o++ = n;
@@ -279,14 +284,12 @@ static void dhcp_server_process(void *arg, struct udp_pcb *upcb, struct pbuf *p,
     opt_write_n(&opt, DHCP_OPT_ROUTER, 4, &d->ip.addr); // aka gateway; can have mulitple addresses
     opt_write_n(&opt, DHCP_OPT_DNS, 4, &d->ip.addr); // can have mulitple addresses
 	
-#if 0
-	char url[] = "http://picohttp/captive-portal/api";
-	//len = sprintf(url, "http://%s/captive-portal/api", ip4addr_ntoa(&d->ip));
-	len = sizeof(url) - 1;
-	
-    opt_write_n(&opt, DHCP_OPT_CAPTIVE_PORTAL, len, url); // can have mulitple addresses
-#endif
-    opt_write_u32(&opt, DHCP_OPT_IP_LEASE_TIME, DEFAULT_LEASE_TIME_S);
+	if (d->domain_name)
+	{
+		opt_write_n(&opt, DHCP_OPT_DOMAIN_NAME, strlen(d->domain_name), d->domain_name);
+	}
+
+	opt_write_u32(&opt, DHCP_OPT_IP_LEASE_TIME, DEFAULT_LEASE_TIME_S);
     *opt++ = DHCP_OPT_END;
     dhcp_socket_sendto(&d->udp, &dhcp_msg, opt - (uint8_t *)&dhcp_msg, 0xffffffff, PORT_DHCP_CLIENT);
 
@@ -294,9 +297,10 @@ ignore_request:
     pbuf_free(p);
 }
 
-void dhcp_server_init(dhcp_server_t *d, ip_addr_t *ip, ip_addr_t *nm) {
+void dhcp_server_init(dhcp_server_t *d, ip_addr_t *ip, ip_addr_t *nm, const char *domain_name) {
     ip_addr_copy(d->ip, *ip);
     ip_addr_copy(d->nm, *nm);
+	d->domain_name = domain_name;
     memset(d->lease, 0, sizeof(d->lease));
     if (dhcp_socket_new_dgram(&d->udp, d, dhcp_server_process) != 0) {
         return;
