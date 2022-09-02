@@ -11,21 +11,22 @@
 #include "debug_printf.h"
 #include "httpserver.h"
 
-typedef struct
+struct _http_server_instance
 {
 	int socket;
 	int buffer_size;
 	const char *hostname;
 	const char *domain_name;
 	xSemaphoreHandle semaphore;
-} http_server_context;
+	http_zone *first_zone;
+};
 
-typedef struct
+struct _http_connection
 {
-	http_server_context *server;
+	http_server_instance server;
 	int socket;
 	char buffer[1];
-} http_request_context;
+};
 
 //Receive at least one line into the buffer. Return the total size of received data.
 static int recv_line(int socket, char *buffer, int buffer_size)
@@ -95,7 +96,7 @@ static char *recv_next_line_buffered(int socket, char *buffer, int buffer_size, 
 	}
 }
 
-static bool host_name_matches(http_request_context *ctx, char *host)
+static bool host_name_matches(http_connection ctx, char *host)
 {
 	int len = strlen(ctx->server->hostname);
 	if (strncasecmp(host, ctx->server->hostname, len))
@@ -131,13 +132,7 @@ static inline void append(char *buf, int *offset, const char *data, int len)
 	*offset += len;
 }
 
-static void do_handle_http_request(http_request_context *ctx, char *path)
-{
-	static const char HelloWorld[] = "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nConnection: Close\r\n\r\n<html><body><h1>Hello, World</h1>This message is shown to you by the lwIP example project.</body></html>";
-	send_all(ctx->socket, HelloWorld, sizeof(HelloWorld) - 1);
-}
-
-static void parse_and_handle_http_request(http_request_context *ctx)
+static void parse_and_handle_http_request(http_connection ctx)
 {
 	int len = recv_line(ctx->socket, ctx->buffer, ctx->server->buffer_size);
 	char *path = NULL;
@@ -217,12 +212,30 @@ static void parse_and_handle_http_request(http_request_context *ctx)
 		}
 	}
 	else
-		do_handle_http_request(ctx, path);
+	{
+		for (http_zone *zone = ctx->server->first_zone; zone; zone = zone->next)
+		{
+			if (strncasecmp(path, zone->prefix, zone->prefix_len))
+				continue;
+			
+			int off = zone->prefix_len;
+			if (path[off] == 0 || path[off] == '/')
+			{
+				while (path[off] == '/')
+					off++;
+				
+				if (zone->handler(ctx, path + off, zone->context))
+					return;
+			}
+		}
+		
+		http_server_send_reply(ctx, "404 Not Found", "text/plain", "File not found", -1);
+	}
 }
 
 static void do_handle_connection(void *arg)
 {
-	http_request_context *ctx = (http_request_context *)arg;
+	http_connection ctx = (http_connection)arg;
 	parse_and_handle_http_request(ctx);
 	closesocket(ctx->socket);
 	vPortFree(ctx);
@@ -232,7 +245,7 @@ static void do_handle_connection(void *arg)
 
 static void http_server_thread(void *arg)
 {
-	http_server_context *sctx = (http_server_context *)arg;
+	http_server_instance sctx = (http_server_instance)arg;
 	
 	while (true)
 	{
@@ -241,7 +254,7 @@ static void http_server_thread(void *arg)
 		int conn_sock = accept(sctx->socket, (struct sockaddr *)&remote_addr, &len);
 		if (conn_sock >= 0)
 		{
-			http_request_context *cctx = pvPortMalloc(sizeof(http_request_context) + sctx->buffer_size);
+			http_connection cctx = pvPortMalloc(sizeof(struct _http_connection) + sctx->buffer_size);
 			if (cctx)
 			{
 				cctx->server = sctx;
@@ -293,7 +306,7 @@ http_server_instance http_server_create(const char *main_host, const char *main_
 		return NULL;
 	}
 	
-	http_server_context *ctx = (http_server_context *)pvPortMalloc(sizeof(http_server_context));
+	http_server_instance ctx = (http_server_instance)pvPortMalloc(sizeof(struct _http_server_instance));
 	if (!ctx)
 	{
 		closesocket(server_sock);
@@ -309,4 +322,24 @@ http_server_instance http_server_create(const char *main_host, const char *main_
 	TaskHandle_t task;
 	xTaskCreate(http_server_thread, "HTTP Server", configMINIMAL_STACK_SIZE, ctx, tskIDLE_PRIORITY + 2, &task);
 	return ctx;
+}
+
+void http_server_add_zone(http_server_instance server, http_zone *zone, const char *prefix, http_request_handler handler, void *context)
+{
+	zone->next = server->first_zone;
+	zone->prefix = prefix;
+	zone->prefix_len = strlen(prefix);
+	zone->handler = handler;
+	zone->context = context;
+	server->first_zone = zone;
+}
+
+void http_server_send_reply(http_connection conn, const char *code, const char *contentType, const char *content, int size)
+{
+	if (size < 0)
+		size = strlen(content);
+	
+	int done = snprintf(conn->buffer, conn->server->buffer_size, "HTTP/1.0 %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n", code, contentType, size);
+	send_all(conn->socket, conn->buffer, done);
+	send_all(conn->socket, content, size);
 }

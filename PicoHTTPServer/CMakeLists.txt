@@ -9,8 +9,36 @@ pico_sdk_init()
 if(DEFINED SYSPROGS_FRAMEWORKS_FILE)
 include(${SYSPROGS_FRAMEWORKS_FILE})
 endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
+
+
+function(add_resource_folder target name path)
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${name}.fs ${CMAKE_CURRENT_BINARY_DIR}/__rerun_${name}.fs 
+		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/SimpleFSBuilder/SimpleFSBuilder
+		ARGS ${path} ${CMAKE_CURRENT_BINARY_DIR}/${name}.fs
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+		COMMENT "Generating ${name}.fs")
+
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${name}.o0
+		COMMAND ${CMAKE_LINKER}
+		ARGS -r -b binary ${name}.fs -o ${CMAKE_CURRENT_BINARY_DIR}/${name}.o0
+		DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${name}.fs ${CMAKE_CURRENT_BINARY_DIR}/__rerun_${name}.fs 
+		COMMENT "Wrapping ${name}.fs")
+
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${name}.o
+		COMMAND ${CMAKE_OBJCOPY} 
+		ARGS --rename-section .data=.rodata
+			 ${CMAKE_CURRENT_BINARY_DIR}/${name}.o0 ${CMAKE_CURRENT_BINARY_DIR}/${name}.o
+		DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${name}.o0
+		COMMENT "Renaming ${name}")
+
+    add_custom_target(${name}-fs DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${name}.o)
+    add_dependencies(${target} ${name}-fs)
+    target_link_libraries(${target} ${CMAKE_CURRENT_BINARY_DIR}/${name}.o)
+
+endfunction()
 
 add_executable(PicoHTTPServer
         main.c
@@ -18,6 +46,9 @@ add_executable(PicoHTTPServer
         dns/dnsserver.c
         httpserver.c
         server_settings.c)
+
+add_resource_folder(PicoHTTPServer www www)
+
 target_compile_definitions(PicoHTTPServer PRIVATE
         WIFI_SSID=\"${WIFI_SSID}\"
         WIFI_PASSWORD=\"${WIFI_PASSWORD}\"
@@ -25,6 +56,7 @@ target_compile_definitions(PicoHTTPServer PRIVATE
 target_include_directories(PicoHTTPServer PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/../..)
+
 target_link_libraries(PicoHTTPServer
         pico_cyw43_arch_lwip_sys_freertos
         pico_stdlib

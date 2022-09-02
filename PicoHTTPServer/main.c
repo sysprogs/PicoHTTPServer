@@ -13,22 +13,59 @@
 #include "dns/dnsserver.h"
 #include "server_settings.h"
 #include "httpserver.h"
+#include "tools/SimpleFSBuilder/SimpleFS.h"
 
 #define TEST_TASK_PRIORITY (tskIDLE_PRIORITY + 2UL)
 
-static void run_server()
+struct SimpleFSContext
 {
-	while (true)
-	{
-		vTaskDelay(100);
-	}
+	GlobalFSHeader *header;
+	StoredFileEntry *entries;
+	char *names, *data;
+} s_SimpleFS;
+
+bool simplefs_init(struct SimpleFSContext *ctx, void *data)
+{
+	ctx->header = (GlobalFSHeader *)data;
+	if (ctx->header->Magic != kSimpleFSHeaderMagic)
+		return false;
+	ctx->entries = (StoredFileEntry *)(ctx->header + 1);
+	ctx->names = (char *)(ctx->entries + ctx->header->EntryCount);
+	ctx->data = (char *)(ctx->names + ctx->header->NameBlockSize);
+	return true;
 }
+
+static bool do_retrieve_file(http_connection conn, char *path, void *context)
+{
+	for (int i = 0; i < s_SimpleFS.header->EntryCount; i++)
+	{
+		if (!strcmp(s_SimpleFS.names + s_SimpleFS.entries[i].NameOffset, path))
+		{
+			http_server_send_reply(conn, 
+				"200 OK", 
+				s_SimpleFS.names + s_SimpleFS.entries[i].ContentTypeOffset,
+				s_SimpleFS.data + s_SimpleFS.entries[i].DataOffset,
+				s_SimpleFS.entries[i].FileSize);
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 
 static void main_task(__unused void *params)
 {
 	if (cyw43_arch_init())
 	{
 		printf("failed to initialise\n");
+		return;
+	}
+	
+	extern void *_binary_www_fs_start;
+	if (!simplefs_init(&s_SimpleFS, &_binary_www_fs_start))
+	{
+		printf("missing/corrupt FS image");
 		return;
 	}
 	
@@ -46,9 +83,9 @@ static void main_task(__unused void *params)
 	dhcp_server_init(&dhcp_server, &netif->ip_addr, &netif->netmask, settings->domain_name);
 	dns_server_init(netif->ip_addr.addr, settings->secondary_address, settings->hostname, settings->domain_name);
 	http_server_instance server = http_server_create(settings->hostname, settings->domain_name, 4, 4096);
-	
-	run_server();
-	cyw43_arch_deinit();
+	static http_zone zone;
+	http_server_add_zone(server, &zone, "", do_retrieve_file, NULL);
+	vTaskDelete(NULL);
 }
 
 xSemaphoreHandle s_PrintfSemaphore;
