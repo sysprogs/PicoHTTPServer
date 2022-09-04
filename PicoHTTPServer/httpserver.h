@@ -7,7 +7,7 @@ typedef bool(*http_request_handler)(http_connection conn, char *path, void *cont
 
 typedef struct http_zone
 {
-	char *prefix;
+	const char *prefix;
 	http_request_handler handler;
 	void *context;
 	struct http_zone *next;

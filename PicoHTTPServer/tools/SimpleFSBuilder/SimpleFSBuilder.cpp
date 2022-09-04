@@ -103,6 +103,7 @@ int main(int argc, char *argv[])
 			{ ".css", "text/css" },
 			{ ".png", "image/png" },
 			{ ".jpg", "image/jpeg" },
+			{ ".svg", "image/svg+xml" },
 		};
 
 		for (const auto &entry : entries)
@@ -139,7 +140,7 @@ int main(int argc, char *argv[])
 			
 			auto it = contentTypes.find(entry.Extension);
 			if (it == contentTypes.end())
-				it = contentTypes.begin();
+				it = contentTypes.find(".html");
 			
 			storedEntries[i].ContentTypeOffset = it->second.Offset;
 			

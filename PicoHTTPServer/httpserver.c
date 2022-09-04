@@ -115,6 +115,27 @@ static bool send_all(int socket, const char *buf, int size)
 {
 	while (size > 0)
 	{
+#if MEM_SIZE < 16384
+		/*	As of SDK 1.4.0, lwIP running out of memory to allocate a network buffer on TCP send
+		 *	permanently stalls the entire netconn. As it doesn't free up the resources taken by
+		 *	that netconn, the effect quickly snowballs, rendering the entire network stack unusable:
+		 *	
+		 *	1. tcp_pbuf_prealloc() called by tcp_write() returns a NULL.
+		 *	2. tcp_write() returns ERR_MEM
+		 *	3. lwip_netconn_do_write() receives ERR_MEM and assumes that it needs to wait for
+		 *	   the remote side to acknowledge the receipt. So it begins waiting on the netconn semaphore:
+		 *		sys_arch_sem_wait(LWIP_API_MSG_SEM(msg), 0)
+		 *  4. As we did not send out any meaningful data, the acknowledgement (normally done in tcp_receive())
+		 *     never happens, and the lwip_send() never returns.
+		 *     
+		 *  You can easily detect this condition by checking lwip_stats.tcp.memerr. If the value is not 0, 
+		 *  the IP stack has run out of memory at some point and might get stuck as described before.
+		 *  
+		 *  Increasing MEM_SIZE generally solves this issue, although it might return if multiple threads
+		 *  attempt to send large amounts of data simultaneously.
+		 **/
+#error Too little memory allocated for lwIP buffers.
+#endif
 		int done = send(socket, buf, size, 0);
 		if (done <= 0)
 			return false;
