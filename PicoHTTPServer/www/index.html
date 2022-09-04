@@ -1,0 +1,107 @@
+<html>
+<head>
+<!--<link rel="stylesheet" href="css/main.css">-->
+<style type="text/css">
+body {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.main {
+    display: grid;
+    place-items: center;
+}
+
+.header {
+    display: grid;
+    place-items: center;
+}
+
+.pinout {
+    width: 100%;
+    max-width: 800px;
+    min-width: 200px;
+    display: grid;
+    grid-template-columns: auto 1fr auto
+}
+
+.header * {
+    margin: 5px 0px;
+}
+
+.pico_image {
+    width: 100%;
+    grid-column: 2;
+}
+
+#left_pins {
+    display: grid;
+    grid-template-rows: repeat(20, 1fr);
+    grid-row-gap: 2px;
+    position: relative;
+    top: 4%;
+    height: 96%;
+}
+
+#left_pins div {
+    font-size: auto;
+    margin: auto 0;
+    background: #eeeeee;
+}
+
+#left_pins div span:nth-last-child(1) {
+    background: #cccccc;
+    margin: 2px;
+}
+
+.pinmode a {
+    margin: 2px;
+}
+    
+</style>
+<script language="JavaScript">
+function setlinks() {
+    for (const span of document.getElementsByClassName('pinmode')) {
+        for (const link of span.children) {
+            link.href='javascript:setgpio(this)';
+        }
+    }
+}
+</script>
+
+</head>
+
+<body onload="setlinks()">
+<div class="main">
+<div class="header">
+<h1>Raspberry Pi Pico W Demo</h1>
+<p>Click on any I/O pin below to change its value:</p>
+</div>
+<div class="pinout">
+    <div id="left_pins">
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>12</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+        <div><span>Value=???</span><span class="pinmode"><a>Input</a><a>0</a><a>1</a></span><span>GPIO0</span><span>1</span></div>
+    </div>
+    
+    <img src="pinout.svg" class="pico_image"/>
+</div>
+</div>
+</body>
+</html>
