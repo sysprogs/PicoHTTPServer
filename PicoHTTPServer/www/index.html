@@ -18,8 +18,8 @@ body {
 
 .pinout {
     width: 100%;
-    max-width: 800px;
-    min-width: 200px;
+    max-width: 900px;
+    min-width: 640px;
     display: grid;
     grid-template-columns: auto 1fr auto
 }
@@ -44,6 +44,10 @@ body {
     margin: 0 10px 0 0;
 }
 
+#right_pins {
+    margin: 0 0 0 10px;
+}
+
 .pins tr td div {
     width: 90%;
     text-align: center;
@@ -54,7 +58,7 @@ body {
     padding: 0 5px;
 }
 
-#left_pins tr td:nth-last-child(1) div {
+#left_pins tr td:nth-last-child(1) div, #right_pins tr td:nth-child(1) div {
     background: #cccccc;
     color: black;
 }
@@ -67,20 +71,23 @@ body {
     background: #000000;
 }
 
+.pwr_pin {
+    background: #E83131;
+}
+
 .pinmode {
     display: block;
-    padding: 0px 2px;
     border: 1px solid black;
+    margin: -1px 0px;
 }
 
 .pinmode span {
-    margin: 5px;
-    padding: 5px 15px;
+    margin: 0px;
+    padding: 5px 10px;
 }
 
 .selected_pinmode {
     margin: 2px;
-    color: white;
     background: blue;
 }
 
@@ -90,6 +97,23 @@ body {
     cursor: pointer;
 }
 
+@media screen and (max-width: 1000px) {
+    .pins {
+        font-size: 12px;
+    }
+}
+
+@media screen and (max-width: 900px) {
+    .pins {
+        font-size: 11px;
+    }
+}
+
+@media screen and (max-width: 800px) {
+    .pins {
+        font-size: 8px;
+    }
+}
 
     
 </style>
@@ -116,7 +140,7 @@ function configurePin(id, mode) {
 
 function setlinks() {
     for (const div of document.getElementsByClassName('pinmode')) {
-        for (const option of ["Input", "0", "1"]) {
+        for (const option of ["IN", "0", "1"]) {
             const span = document.createElement("span");
             span.appendChild(document.createTextNode(option));
             span.classList.add("deselected_pinmode");
@@ -163,6 +187,30 @@ function setlinks() {
     </table>
     
     <img src="pinout.svg" class="pico_image"/>
+    
+    <table id="right_pins" class="pins">
+        <tr><td><div>40</div></td><td><div class="pwr_pin">VBUS</div></td><td></td><td></td></tr>
+        <tr><td><div>39</div></td><td><div class="pwr_pin">VSYS</div></td><td></td><td></td></tr>
+        <tr><td><div>38</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
+        <tr><td><div>37</div></td><td><div class="pwr_pin">3V3_EN</div></td><td></td><td></td></tr>
+        <tr><td><div>36</div></td><td><div class="pwr_pin">3V3_OUT</div></td><td></td><td></td></tr>
+        <tr><td><div>35</div></td><td><div class="pwr_pin">ADC_VREF</div></td><td></td><td></td></tr>
+        <tr><td><div>34</div></td><td><div class="gpio_pin">GPIO28</div></td><td><div id="gpio28" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>33</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
+        <tr><td><div>32</div></td><td><div class="gpio_pin">GPIO27</div></td><td><div id="gpio27" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>31</div></td><td><div class="gpio_pin">GPIO26</div></td><td><div id="gpio26" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>30</div></td><td><div class="pwr_pin">RUN</div></td><td></td><td></td></tr>
+        <tr><td><div>29</div></td><td><div class="gpio_pin">GPIO22</div></td><td><div id="gpio22" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>28</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
+        <tr><td><div>27</div></td><td><div class="gpio_pin">GPIO21</div></td><td><div id="gpio21" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>26</div></td><td><div class="gpio_pin">GPIO20</div></td><td><div id="gpio20" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>25</div></td><td><div class="gpio_pin">GPIO19</div></td><td><div id="gpio19" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>24</div></td><td><div class="gpio_pin">GPIO18</div></td><td><div id="gpio18" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>23</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
+        <tr><td><div>22</div></td><td><div class="gpio_pin">GPIO17</div></td><td><div id="gpio17" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>21</div></td><td><div class="gpio_pin">GPIO16</div></td><td><div id="gpio16" class="pinmode"></div></td><td><div></div></td></tr>
+    </table>
+    
 </div>
 </div>
 </body>
