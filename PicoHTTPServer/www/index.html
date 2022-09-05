@@ -1,6 +1,6 @@
 <html>
 <head>
-<!--<link rel="stylesheet" href="css/main.css">-->
+<title>Raspberry Pi Pico W Demo</title>
 <style type="text/css">
 body {
     font-family: Verdana, Geneva, Tahoma, sans-serif;
@@ -18,8 +18,8 @@ body {
 
 .pinout {
     width: 100%;
-    max-width: 1000px;
-    min-width: 640px;
+    max-width: 960px;
+    min-width: 650px;
     display: grid;
     grid-template-columns: auto 1fr auto
 }
@@ -49,18 +49,26 @@ body {
 }
 
 .pins tr td div {
-    width: 90%;
+    width: 100%;
     text-align: center;
-    padding: 5px 0;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }
 
 .pins tr td {
-    padding: 0 5px;
+    padding: 0 7px;
 }
 
 #left_pins tr td:nth-last-child(1) div, #right_pins tr td:nth-child(1) div {
     background: #cccccc;
     color: black;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+#left_pins tr td:nth-last-child(2) div, #right_pins tr td:nth-child(2) div {
+    padding-left: 4px;
+    padding-right: 4px;
 }
 
 .gpio_pin {
@@ -78,18 +86,21 @@ body {
 .dynamic_selector {
     display: block;
     border: 1px solid black;
-    margin: 0px 0px;
+    margin: -1px 0px;
 }
 
 .pinmode span {
     padding: 5px 5px;
+    margin: 0px -1px;
 }
 
 .pinvalue span {
     padding: 5px 10px;
+    margin: 0px -1px;
 }
 
 .selected_value {
+    color: white;
     background: blue;
 }
 
@@ -120,7 +131,7 @@ body {
 </style>
 <script language="JavaScript">
 
-function displayPinMode(id, mode) {
+function updateSelector(id, mode) {
     for (const span of document.getElementById(id).children) {
         if (span.dataset.option == mode)
         {
@@ -136,7 +147,11 @@ function displayPinMode(id, mode) {
 }
 
 function configurePin(id, mode, value) {
-    displayPinMode(id + mode, value);
+    var xhr = new XMLHttpRequest();
+      
+    xhr.open("GET", `${window.location.protocol}//${window.location.host}/api/writepin/${id}?${mode}=${value}`, true);
+    xhr.send();
+    updateSelector(id + mode, value);
 }
 
 function setlinks() {
@@ -157,15 +172,33 @@ function setlinks() {
         }
     }
 }
+
+function refresh_values() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", `${window.location.protocol}//${window.location.host}/api/readpins`, true);
+    xhr.send();
+    xhr.onloadend = function () {
+        var data = JSON.parse(this.responseText);
+        for (const k of Object.keys(data)) {
+            updateSelector(k, data[k]);
+        }
+  };  
+}
+
+function init_page() {
+    setlinks();
+    setInterval(refresh_values, 500);
+}
+
 </script>
 
 </head>
 
-<body onload="setlinks()">
+<body onload="init_page()">
 <div class="main">
 <div class="header">
 <h1>Raspberry Pi Pico W Demo</h1>
-<p>Click on any I/O pin below to change its value:</p>
+<p>Use the selectors below to change the modes and values of GPIO pins:</p>
 </div>
 <div class="pinout">
     <table id="left_pins" class="pins">
@@ -200,23 +233,27 @@ function setlinks() {
         <tr><td><div>37</div></td><td><div class="pwr_pin">3V3_EN</div></td><td></td><td></td></tr>
         <tr><td><div>36</div></td><td><div class="pwr_pin">3V3_OUT</div></td><td></td><td></td></tr>
         <tr><td><div>35</div></td><td><div class="pwr_pin">ADC_VREF</div></td><td></td><td></td></tr>
-        <tr><td><div>34</div></td><td><div class="gpio_pin">GPIO28</div></td><td><div id="gpio28d" class="pinmode"></td><td><div id="gpio28v" class="pinvalue"></div></td></tr>
+        <tr><td><div>34</div></td><td><div class="gpio_pin">GPIO28</div></td><td><div id="gpio28d" class="pinmode"></div></td><td><div id="gpio28v" class="pinvalue"></div></td></tr>
         <tr><td><div>33</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
-        <tr><td><div>32</div></td><td><div class="gpio_pin">GPIO27</div></td><td><div id="gpio27d" class="pinmode"></td><td><div id="gpio27v" class="pinvalue"></div></td></tr>
-        <tr><td><div>31</div></td><td><div class="gpio_pin">GPIO26</div></td><td><div id="gpio26d" class="pinmode"></td><td><div id="gpio26v" class="pinvalue"></div></td></tr>
+        <tr><td><div>32</div></td><td><div class="gpio_pin">GPIO27</div></td><td><div id="gpio27d" class="pinmode"></div></td><td><div id="gpio27v" class="pinvalue"></div></td></tr>
+        <tr><td><div>31</div></td><td><div class="gpio_pin">GPIO26</div></td><td><div id="gpio26d" class="pinmode"></div></td><td><div id="gpio26v" class="pinvalue"></div></td></tr>
         <tr><td><div>30</div></td><td><div class="pwr_pin">RUN</div></td><td></td><td></td></tr>
-        <tr><td><div>29</div></td><td><div class="gpio_pin">GPIO22</div></td><td><div id="gpio22d" class="pinmode"></td><td><div id="gpio22v" class="pinvalue"></div></td></tr>
+        <tr><td><div>29</div></td><td><div class="gpio_pin">GPIO22</div></td><td><div id="gpio22d" class="pinmode"></div></td><td><div id="gpio22v" class="pinvalue"></div></td></tr>
         <tr><td><div>28</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
-        <tr><td><div>27</div></td><td><div class="gpio_pin">GPIO21</div></td><td><div id="gpio21d" class="pinmode"></td><td><div id="gpio21v" class="pinvalue"></div></td></tr>
-        <tr><td><div>26</div></td><td><div class="gpio_pin">GPIO20</div></td><td><div id="gpio20d" class="pinmode"></td><td><div id="gpio20v" class="pinvalue"></div></td></tr>
-        <tr><td><div>25</div></td><td><div class="gpio_pin">GPIO19</div></td><td><div id="gpio19d" class="pinmode"></td><td><div id="gpio19v" class="pinvalue"></div></td></tr>
-        <tr><td><div>24</div></td><td><div class="gpio_pin">GPIO18</div></td><td><div id="gpio18d" class="pinmode"></td><td><div id="gpio18v" class="pinvalue"></div></td></tr>
+        <tr><td><div>27</div></td><td><div class="gpio_pin">GPIO21</div></td><td><div id="gpio21d" class="pinmode"></div></td><td><div id="gpio21v" class="pinvalue"></div></td></tr>
+        <tr><td><div>26</div></td><td><div class="gpio_pin">GPIO20</div></td><td><div id="gpio20d" class="pinmode"></div></td><td><div id="gpio20v" class="pinvalue"></div></td></tr>
+        <tr><td><div>25</div></td><td><div class="gpio_pin">GPIO19</div></td><td><div id="gpio19d" class="pinmode"></div></td><td><div id="gpio19v" class="pinvalue"></div></td></tr>
+        <tr><td><div>24</div></td><td><div class="gpio_pin">GPIO18</div></td><td><div id="gpio18d" class="pinmode"></div></td><td><div id="gpio18v" class="pinvalue"></div></td></tr>
         <tr><td><div>23</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
-        <tr><td><div>22</div></td><td><div class="gpio_pin">GPIO17</div></td><td><div id="gpio17d" class="pinmode"></td><td><div id="gpio17v" class="pinvalue"></div></td></tr>
-        <tr><td><div>21</div></td><td><div class="gpio_pin">GPIO16</div></td><td><div id="gpio16d" class="pinmode"></td><td><div id="gpio16v" class="pinvalue"></div></td></tr>
+        <tr><td><div>22</div></td><td><div class="gpio_pin">GPIO17</div></td><td><div id="gpio17d" class="pinmode"></div></td><td><div id="gpio17v" class="pinvalue"></div></td></tr>
+        <tr><td><div>21</div></td><td><div class="gpio_pin">GPIO16</div></td><td><div id="gpio16d" class="pinmode"></div></td><td><div id="gpio16v" class="pinvalue"></div></td></tr>
     </table>
-    
 </div>
+<div class="header">
+<table>
+<tr><td>Built-in LED state:</td>
+<td><div id="led0v" class="pinvalue" style="padding: 5px 0px;"></div></td></tr>
+</table>
 </div>
 </body>
 </html>
