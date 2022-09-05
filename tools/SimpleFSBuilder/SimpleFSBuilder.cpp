@@ -7,6 +7,7 @@
 #include <memory.h>
 #include <string.h>
 #include <map>
+#include <vector>
 #include "SimpleFS.h"
 
 using namespace std;

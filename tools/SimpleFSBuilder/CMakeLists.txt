@@ -4,4 +4,5 @@
 cmake_minimum_required(VERSION 2.7)
 project(SimpleFSBuilder)
 add_executable(SimpleFSBuilder SimpleFSBuilder.cpp)
+set_property(TARGET SimpleFSBuilder PROPERTY CXX_STANDARD 17)
 target_link_libraries(SimpleFSBuilder -static -static-libgcc -static-libstdc++)

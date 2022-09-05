@@ -13,10 +13,19 @@ endif()
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
+if (CMAKE_HOST_WIN32)
+    set(SIMPLE_FS_BUILDER_EXE ${CMAKE_CURRENT_SOURCE_DIR}/../tools/SimpleFSBuilder/SimpleFSBuilder.exe)
+else()
+    set(SIMPLE_FS_BUILDER_EXE ${CMAKE_CURRENT_SOURCE_DIR}/../tools/SimpleFSBuilder/build/SimpleFSBuilder)
+endif()
+
+if (NOT EXISTS ${SIMPLE_FS_BUILDER_EXE})
+    message(FATAL_ERROR "Missing ${SIMPLE_FS_BUILDER_EXE}. Please build it before building this project.")
+endif()
 
 function(add_resource_folder target name path)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${name}.fs ${CMAKE_CURRENT_BINARY_DIR}/__rerun_${name}.fs 
-		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../tools/SimpleFSBuilder/SimpleFSBuilder
+		COMMAND ${SIMPLE_FS_BUILDER_EXE}
 		ARGS ${path} ${CMAKE_CURRENT_BINARY_DIR}/${name}.fs
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
 		COMMENT "Generating ${name}.fs")
@@ -61,6 +70,11 @@ target_link_libraries(PicoHTTPServer
         pico_cyw43_arch_lwip_sys_freertos
         pico_stdlib
         pico_lwip_iperf
-        FreeRTOS-Kernel-Heap4
-        Profiler)
+        FreeRTOS-Kernel-Heap4)
+
+if (TARGET Profiler)
+    target_link_libraries(PicoHTTPServer 
+            Profiler)
+endif()
+
 pico_add_extra_outputs(PicoHTTPServer)
