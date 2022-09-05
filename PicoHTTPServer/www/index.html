@@ -18,7 +18,7 @@ body {
 
 .pinout {
     width: 100%;
-    max-width: 900px;
+    max-width: 1000px;
     min-width: 640px;
     display: grid;
     grid-template-columns: auto 1fr auto
@@ -51,7 +51,7 @@ body {
 .pins tr td div {
     width: 90%;
     text-align: center;
-    padding: 5px;
+    padding: 5px 0;
 }
 
 .pins tr td {
@@ -75,35 +75,36 @@ body {
     background: #E83131;
 }
 
-.pinmode {
+.dynamic_selector {
     display: block;
     border: 1px solid black;
-    margin: -1px 0px;
+    margin: 0px 0px;
 }
 
 .pinmode span {
-    margin: 0px;
+    padding: 5px 5px;
+}
+
+.pinvalue span {
     padding: 5px 10px;
 }
 
-.selected_pinmode {
-    margin: 2px;
+.selected_value {
     background: blue;
 }
 
-.deselected_pinmode {
-    margin: 2px;
+.deselected_value {
     color: black;
     cursor: pointer;
 }
 
-@media screen and (max-width: 1000px) {
+@media screen and (max-width: 980px) {
     .pins {
-        font-size: 12px;
+        font-size: 11px;
     }
 }
 
-@media screen and (max-width: 900px) {
+@media screen and (max-width: 850px) {
     .pins {
         font-size: 11px;
     }
@@ -123,32 +124,36 @@ function displayPinMode(id, mode) {
     for (const span of document.getElementById(id).children) {
         if (span.dataset.option == mode)
         {
-            span.classList.add("selected_pinmode");
-            span.classList.remove("deselected_pinmode");
+            span.classList.add("selected_value");
+            span.classList.remove("deselected_value");
         }
         else
         {
-            span.classList.add("deselected_pinmode");
-            span.classList.remove("selected_pinmode");
+            span.classList.add("deselected_value");
+            span.classList.remove("selected_value");
         }
     }
 }
 
-function configurePin(id, mode) {
-    displayPinMode(id, mode);
+function configurePin(id, mode, value) {
+    displayPinMode(id + mode, value);
 }
 
 function setlinks() {
-    for (const div of document.getElementsByClassName('pinmode')) {
-        for (const option of ["IN", "0", "1"]) {
-            const span = document.createElement("span");
-            span.appendChild(document.createTextNode(option));
-            span.classList.add("deselected_pinmode");
-            span.dataset.id = div.id;
-            span.dataset.option = option;
-            span.id = div.id + "_" + option;
-            span.onclick = function(event) { configurePin(event.target.dataset.id, event.target.dataset.option); };
-            div.appendChild(span);
+    for (const line of [["pinmode", ["IN", "OUT"], "d"], ["pinvalue", ["0", "1"], "v"]]) {
+        for (const div of document.getElementsByClassName(line[0])) {
+            div.classList.add("dynamic_selector");
+            for (const option of line[1]) {
+                const span = document.createElement("span");
+                span.appendChild(document.createTextNode(option));
+                span.classList.add("deselected_value");
+                span.dataset.id = div.id.substring(0, div.id.length - 1);
+                span.dataset.mode = line[2];
+                span.dataset.option = option;
+                span.id = div.id + "_" + option;
+                span.onclick = function(event) { configurePin(event.target.dataset.id, event.target.dataset.mode, event.target.dataset.option); };
+                div.appendChild(span);
+            }
         }
     }
 }
@@ -164,26 +169,26 @@ function setlinks() {
 </div>
 <div class="pinout">
     <table id="left_pins" class="pins">
-        <tr><td><div></div></td><td><div id="gpio0" class="pinmode"></div></td><td><div class="gpio_pin">GPIO0</div></td><td><div>1</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio1" class="pinmode"></div></td><td><div class="gpio_pin">GPIO1</div></td><td><div>2</div></td></tr>
+        <tr><td><div id="gpio0v" class="pinvalue"></div></td><td><div id="gpio0d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO0</div></td><td><div>1</div></td></tr>
+        <tr><td><div id="gpio1v" class="pinvalue"></div></td><td><div id="gpio1d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO1</div></td><td><div>2</div></td></tr>
         <tr><td></td><td></td><td><div class="gnd_pin">GND</div></td><td><div>3</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio2" class="pinmode"></div></td><td><div class="gpio_pin">GPIO2</div></td><td><div>4</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio3" class="pinmode"></div></td><td><div class="gpio_pin">GPIO3</div></td><td><div>5</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio4" class="pinmode"></div></td><td><div class="gpio_pin">GPIO4</div></td><td><div>6</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio5" class="pinmode"></div></td><td><div class="gpio_pin">GPIO5</div></td><td><div>7</div></td></tr>
+        <tr><td><div id="gpio2v" class="pinvalue"></div></td><td><div id="gpio2d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO2</div></td><td><div>4</div></td></tr>
+        <tr><td><div id="gpio3v" class="pinvalue"></div></td><td><div id="gpio3d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO3</div></td><td><div>5</div></td></tr>
+        <tr><td><div id="gpio4v" class="pinvalue"></div></td><td><div id="gpio4d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO4</div></td><td><div>6</div></td></tr>
+        <tr><td><div id="gpio5v" class="pinvalue"></div></td><td><div id="gpio5d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO5</div></td><td><div>7</div></td></tr>
         <tr><td></td><td></td><td><div class="gnd_pin">GND</div></td><td><div>8</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio6" class="pinmode"></div></td><td><div class="gpio_pin">GPIO6</div></td><td><div>9</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio7" class="pinmode"></div></td><td><div class="gpio_pin">GPIO7</div></td><td><div>10</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio8" class="pinmode"></div></td><td><div class="gpio_pin">GPIO8</div></td><td><div>11</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio9" class="pinmode"></div></td><td><div class="gpio_pin">GPIO9</div></td><td><div>12</div></td></tr>
+        <tr><td><div id="gpio6v" class="pinvalue"></div></td><td><div id="gpio6d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO6</div></td><td><div>9</div></td></tr>
+        <tr><td><div id="gpio7v" class="pinvalue"></div></td><td><div id="gpio7d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO7</div></td><td><div>10</div></td></tr>
+        <tr><td><div id="gpio8v" class="pinvalue"></div></td><td><div id="gpio8d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO8</div></td><td><div>11</div></td></tr>
+        <tr><td><div id="gpio9v" class="pinvalue"></div></td><td><div id="gpio9d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO9</div></td><td><div>12</div></td></tr>
         <tr><td></td><td></td><td><div class="gnd_pin">GND</div></td><td><div>13</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio10" class="pinmode"></div></td><td><div class="gpio_pin">GPIO10</div></td><td><div>14</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio11" class="pinmode"></div></td><td><div class="gpio_pin">GPIO11</div></td><td><div>15</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio12" class="pinmode"></div></td><td><div class="gpio_pin">GPIO12</div></td><td><div>16</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio13" class="pinmode"></div></td><td><div class="gpio_pin">GPIO13</div></td><td><div>17</div></td></tr>
+        <tr><td><div id="gpio10v" class="pinvalue"></div></td><td><div id="gpio10d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO10</div></td><td><div>14</div></td></tr>
+        <tr><td><div id="gpio11v" class="pinvalue"></div></td><td><div id="gpio11d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO11</div></td><td><div>15</div></td></tr>
+        <tr><td><div id="gpio12v" class="pinvalue"></div></td><td><div id="gpio12d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO12</div></td><td><div>16</div></td></tr>
+        <tr><td><div id="gpio13v" class="pinvalue"></div></td><td><div id="gpio13d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO13</div></td><td><div>17</div></td></tr>
         <tr><td></td><td></td><td><div class="gnd_pin">GND</div></td><td><div>18</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio14" class="pinmode"></div></td><td><div class="gpio_pin">GPIO14</div></td><td><div>19</div></td></tr>
-        <tr><td><div></div></td><td><div id="gpio15" class="pinmode"></div></td><td><div class="gpio_pin">GPIO15</div></td><td><div>20</div></td></tr>
+        <tr><td><div id="gpio14v" class="pinvalue"></div></td><td><div id="gpio14d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO14</div></td><td><div>19</div></td></tr>
+        <tr><td><div id="gpio15v" class="pinvalue"></div></td><td><div id="gpio15d" class="pinmode"></div></td><td><div class="gpio_pin">GPIO15</div></td><td><div>20</div></td></tr>
     </table>
     
     <img src="pinout.svg" class="pico_image"/>
@@ -195,20 +200,20 @@ function setlinks() {
         <tr><td><div>37</div></td><td><div class="pwr_pin">3V3_EN</div></td><td></td><td></td></tr>
         <tr><td><div>36</div></td><td><div class="pwr_pin">3V3_OUT</div></td><td></td><td></td></tr>
         <tr><td><div>35</div></td><td><div class="pwr_pin">ADC_VREF</div></td><td></td><td></td></tr>
-        <tr><td><div>34</div></td><td><div class="gpio_pin">GPIO28</div></td><td><div id="gpio28" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>34</div></td><td><div class="gpio_pin">GPIO28</div></td><td><div id="gpio28d" class="pinmode"></td><td><div id="gpio28v" class="pinvalue"></div></td></tr>
         <tr><td><div>33</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
-        <tr><td><div>32</div></td><td><div class="gpio_pin">GPIO27</div></td><td><div id="gpio27" class="pinmode"></div></td><td><div></div></td></tr>
-        <tr><td><div>31</div></td><td><div class="gpio_pin">GPIO26</div></td><td><div id="gpio26" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>32</div></td><td><div class="gpio_pin">GPIO27</div></td><td><div id="gpio27d" class="pinmode"></td><td><div id="gpio27v" class="pinvalue"></div></td></tr>
+        <tr><td><div>31</div></td><td><div class="gpio_pin">GPIO26</div></td><td><div id="gpio26d" class="pinmode"></td><td><div id="gpio26v" class="pinvalue"></div></td></tr>
         <tr><td><div>30</div></td><td><div class="pwr_pin">RUN</div></td><td></td><td></td></tr>
-        <tr><td><div>29</div></td><td><div class="gpio_pin">GPIO22</div></td><td><div id="gpio22" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>29</div></td><td><div class="gpio_pin">GPIO22</div></td><td><div id="gpio22d" class="pinmode"></td><td><div id="gpio22v" class="pinvalue"></div></td></tr>
         <tr><td><div>28</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
-        <tr><td><div>27</div></td><td><div class="gpio_pin">GPIO21</div></td><td><div id="gpio21" class="pinmode"></div></td><td><div></div></td></tr>
-        <tr><td><div>26</div></td><td><div class="gpio_pin">GPIO20</div></td><td><div id="gpio20" class="pinmode"></div></td><td><div></div></td></tr>
-        <tr><td><div>25</div></td><td><div class="gpio_pin">GPIO19</div></td><td><div id="gpio19" class="pinmode"></div></td><td><div></div></td></tr>
-        <tr><td><div>24</div></td><td><div class="gpio_pin">GPIO18</div></td><td><div id="gpio18" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>27</div></td><td><div class="gpio_pin">GPIO21</div></td><td><div id="gpio21d" class="pinmode"></td><td><div id="gpio21v" class="pinvalue"></div></td></tr>
+        <tr><td><div>26</div></td><td><div class="gpio_pin">GPIO20</div></td><td><div id="gpio20d" class="pinmode"></td><td><div id="gpio20v" class="pinvalue"></div></td></tr>
+        <tr><td><div>25</div></td><td><div class="gpio_pin">GPIO19</div></td><td><div id="gpio19d" class="pinmode"></td><td><div id="gpio19v" class="pinvalue"></div></td></tr>
+        <tr><td><div>24</div></td><td><div class="gpio_pin">GPIO18</div></td><td><div id="gpio18d" class="pinmode"></td><td><div id="gpio18v" class="pinvalue"></div></td></tr>
         <tr><td><div>23</div></td><td><div class="gnd_pin">GND</div></td><td></td><td></td></tr>
-        <tr><td><div>22</div></td><td><div class="gpio_pin">GPIO17</div></td><td><div id="gpio17" class="pinmode"></div></td><td><div></div></td></tr>
-        <tr><td><div>21</div></td><td><div class="gpio_pin">GPIO16</div></td><td><div id="gpio16" class="pinmode"></div></td><td><div></div></td></tr>
+        <tr><td><div>22</div></td><td><div class="gpio_pin">GPIO17</div></td><td><div id="gpio17d" class="pinmode"></td><td><div id="gpio17v" class="pinvalue"></div></td></tr>
+        <tr><td><div>21</div></td><td><div class="gpio_pin">GPIO16</div></td><td><div id="gpio16d" class="pinmode"></td><td><div id="gpio16v" class="pinvalue"></div></td></tr>
     </table>
     
 </div>
