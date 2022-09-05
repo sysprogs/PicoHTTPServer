@@ -1,0 +1,20 @@
+diff -urN lwip.orig/src/core/ipv4/ip4.c lwip/src/core/ipv4/ip4.c
+--- lwip.orig/src/core/ipv4/ip4.c	2022-09-05 12:52:54.621160700 -0700
++++ lwip/src/core/ipv4/ip4.c	2022-09-05 12:52:30.156428000 -0700
+@@ -403,6 +403,8 @@
+ }
+ #endif /* IP_FORWARD */
+ 
++int ip4_secondary_ip_address;
++
+ /** Return true if the current input packet should be accepted on this netif */
+ static int
+ ip4_input_accept(struct netif *netif)
+@@ -419,6 +421,7 @@
+     if (ip4_addr_eq(ip4_current_dest_addr(), netif_ip4_addr(netif)) ||
+         /* or broadcast on this interface network address? */
+         ip4_addr_isbroadcast(ip4_current_dest_addr(), netif)
++        || (ip4_secondary_ip_address && ip4_current_dest_addr()->addr == ip4_secondary_ip_address)
+ #if LWIP_NETIF_LOOPBACK && !LWIP_HAVE_LOOPIF
+         || (ip4_addr_get_u32(ip4_current_dest_addr()) == PP_HTONL(IPADDR_LOOPBACK))
+ #endif /* LWIP_NETIF_LOOPBACK && !LWIP_HAVE_LOOPIF */

@@ -5,7 +5,7 @@ VisualStudioVersion = 17.3.32811.315
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{803FD0C6-D64E-4E16-9DC3-1DAEC859A3D2}") = "PicoHTTPServer", "PicoHTTPServer.vgdbproj", "{ACC40D02-2301-4CA2-816D-2DC4079047DF}"
 EndProject
-Project("{803FD0C6-D64E-4E16-9DC3-1DAEC859A3D2}") = "SimpleFSBuilder", "tools\SimpleFSBuilder\SimpleFSBuilder.vgdbcmake", "{74B44ADD-7CE6-4F55-929C-FE4C5CEFB6A6}"
+Project("{803FD0C6-D64E-4E16-9DC3-1DAEC859A3D2}") = "SimpleFSBuilder", "..\tools\SimpleFSBuilder\SimpleFSBuilder.vgdbcmake", "{74B44ADD-7CE6-4F55-929C-FE4C5CEFB6A6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

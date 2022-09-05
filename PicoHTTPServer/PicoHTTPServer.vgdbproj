@@ -75,7 +75,12 @@
             <string>com.sysprogs.embedded.semihosting_and_profiler</string>
           </IDs>
           <Config>
-            <Entries />
+            <Entries>
+              <KeyValue>
+                <Key>com.sysprogs.efp.profiling.debugger_check</Key>
+                <Value>SYSPROGS_PROFILER_DEBUGGER_CHECK_MODE=1</Value>
+              </KeyValue>
+            </Entries>
           </Config>
         </ReferencedFrameworks>
       </Extension>

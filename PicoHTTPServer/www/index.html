@@ -127,7 +127,85 @@ body {
     }
 }
 
+.settings_link {
+    margin: 3px 0px 0px 0px;
+    display: inline-block;
+    vertical-align: top;
+}
+
+.modal_background {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+}
     
+.modal_popup {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    box-shadow: 0 5px 10px 0 rgba(0,0,0,0.5),0 10px 20px 0 rgba(0,0,0,0.1);
+}
+
+.settings_popup {
+    width: 500px;
+}
+
+.error_popup {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    background: red;
+    padding: 30px 30px;
+    color: white;
+}
+
+.reboot_popup {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    background: green;
+    padding: 30px 30px;
+    color: white;
+}
+
+.settings_field {
+    width: 200px;
+}
+
+.modal_popup table {
+    margin: 0px auto;
+}
+
+.modal_popup h2 {
+    text-align: center;
+}
+
+.modal_popup div:nth-last-child(1) {
+    text-align: right;
+    margin-top: 20px;
+}
+
+.modal_popup button {
+  background-color: #4CAF50;
+  border: none;
+  color: white;
+  width: 100px;
+  padding: 10px 0;
+  text-align: center;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
 </style>
 <script language="JavaScript">
 
@@ -147,9 +225,9 @@ function updateSelector(id, mode) {
 }
 
 function configurePin(id, mode, value) {
-    var xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
       
-    xhr.open("GET", `${window.location.protocol}//${window.location.host}/api/writepin/${id}?${mode}=${value}`, true);
+    xhr.open("GET", `/api/writepin/${id}?${mode}=${value}`, true);
     xhr.send();
     updateSelector(id + mode, value);
 }
@@ -173,21 +251,101 @@ function setlinks() {
     }
 }
 
+var last_update_time = Date.now();
+var unrecoverable_error = null;
+
+function show_unrecoverable_error(text) {
+    unrecoverable_error = text;
+    document.getElementById("error_popup").style.display = "block";
+    document.getElementById("error_popup_text").innerHTML = text;
+}
+
+
 function refresh_values() {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", `${window.location.protocol}//${window.location.host}/api/readpins`, true);
+    if (unrecoverable_error)
+        return;
+
+    if ((Date.now() - last_update_time) > 5000) {
+        show_unrecoverable_error("The Raspberry Pi is not responding. Please try restarting it and refresh this page.");
+    }
+
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", '/api/readpins', true);
     xhr.send();
     xhr.onloadend = function () {
-        var data = JSON.parse(this.responseText);
+        let data = JSON.parse(this.responseText);
         for (const k of Object.keys(data)) {
             updateSelector(k, data[k]);
         }
+        
+        last_update_time = Date.now();
   };  
 }
 
 function init_page() {
     setlinks();
     setInterval(refresh_values, 500);
+    
+    window.onclick = function(event) {
+      if (event.target && event.target.classList.contains("modal_background")) {
+        show_settings_popup(false);
+      }
+    }
+}
+
+function show_settings_popup(show) {
+    update_field_visibility();
+    document.getElementById("settings_popup_root").style.display = show ? "block" : "none";
+}
+
+function update_field_visibility() {
+    for (const el of document.getElementsByClassName("dynamic_row"))
+        el.style.display = document.getElementById(el.dataset.condition).checked ? "table-row" : "none";
+}
+
+function edit_settings() {
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", '/api/settings', true);
+    xhr.send();
+    xhr.onloadend = function () {
+        try {
+            let data = JSON.parse(this.responseText);
+            for (const k of Object.keys(data)) {
+                const el = document.getElementById(k);
+                if (el.getAttribute('type') == 'checkbox')
+                    el.checked = data[k];
+                else
+                    el.value = data[k];
+            }
+            
+            show_settings_popup(true);
+        }
+        catch(err) {
+            show_unrecoverable_error(err.message);
+        }
+  };  
+}
+
+function apply_settings() {
+    let xhr = new XMLHttpRequest();
+    xhr.open("POST", '/api/settings', true);
+    xhr.setRequestHeader("Content-Type", "text/plain");
+    let text = "";
+    for (const el of document.getElementsByClassName("settings_checkbox"))
+        text += `${el.id}=${el.checked}\r\n`;
+    for (const el of document.getElementsByClassName("settings_field"))
+        text += `${el.id}=${el.value}\r\n`;
+    xhr.send(text);
+    xhr.onloadend = function () {
+        if (this.responseText == "OK")
+        {
+            show_settings_popup(false);
+            document.getElementById("reboot_popup").style.display = "block";
+            unrecoverable_error = "rebooting";
+        }
+        else
+            alert(this.responseText);
+    };  
 }
 
 </script>
@@ -197,7 +355,7 @@ function init_page() {
 <body onload="init_page()">
 <div class="main">
 <div class="header">
-<h1>Raspberry Pi Pico W Demo</h1>
+<h1>Raspberry Pi Pico W Demo <a href="javascript:edit_settings()" class="settings_link"><img style="width: 32px; height: 32px; margin: 0px;" src="img/configure.png"></a></h1>
 <p>Use the selectors below to change the modes and values of GPIO pins:</p>
 </div>
 <div class="pinout">
@@ -254,6 +412,40 @@ function init_page() {
 <tr><td>Built-in LED state:</td>
 <td><div id="led0v" class="pinvalue" style="padding: 5px 0px;"></div></td></tr>
 </table>
+</div>
+
+<div class="modal_background" id="settings_popup_root" >
+<div class="settings_popup modal_popup">
+<h2>Demo HTTP server settings</h2>
+<table>
+    <tr><td>Wi-Fi Network name (SSID):</td><td><input id="ssid" class="settings_field"></td></tr>
+    <tr><td colspan="2"><input id="has_password" type="checkbox" onchange="update_field_visibility()" class="settings_checkbox">Wi-Fi Network needs password</td></tr>
+    <tr class="dynamic_row" data-condition="has_password"><td>Wi-Fi Password:</td><td><input id="password" class="settings_field"></td></tr>
+    <tr><td>Host name:</td><td><input id="hostname" class="settings_field"></td></tr>
+    <tr><td colspan="2"><input id="use_domain" type="checkbox" onchange="update_field_visibility()" class="settings_checkbox">Use a connection DNS suffix</td></tr>
+    <tr class="dynamic_row" data-condition="use_domain"><td>DNS suffix:</td><td><input id="domain" class="settings_field"></td></tr>
+
+    <tr><td>IP address:</td><td><input id="ipaddr" class="settings_field"></td></tr>
+    <tr><td>Network mask:</td><td><input id="netmask" class="settings_field"></td></tr>
+    
+    <tr><td colspan="2"><input id="use_second_ip" type="checkbox" onchange="update_field_visibility()" class="settings_checkbox">Show 'sign into the network' message</td></tr>
+    <tr class="dynamic_row" data-condition="use_second_ip"><td>Secondary IP address:</td><td><input id="ipaddr2" class="settings_field"></td></tr>
+</table>
+<div>
+    <button onclick="apply_settings()">OK</button>
+    <button onclick="show_settings_popup(false)">Cancel</button>
+</div>
+</div>
+</div>
+
+<div id="error_popup" class="error_popup modal_popup">
+    <p id="error_popup_text"></p>
+</div>
+
+<div id="reboot_popup" class="reboot_popup modal_popup">
+    <p>The settings have been updated and the device is restarting.<br/>Please disconnect from the Wi-Fi network, reconnect to it and proceed to the network login page.</p>
+</div>
+
 </div>
 </body>
 </html>

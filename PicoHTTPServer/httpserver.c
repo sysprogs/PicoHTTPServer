@@ -28,6 +28,13 @@ struct _http_connection
 	http_server_instance server;
 	int socket;
 	size_t buffered_size;
+	struct
+	{
+		int buffer_used, buffer_pos;
+		int remaining_input_len;
+		int offset_from_main_buffer;
+	} post;
+	
 	char buffer[1];
 };
 
@@ -52,7 +59,7 @@ static int recv_line(int socket, char *buffer, int buffer_size)
 
 //Read next line using the buffer (multiple lines can be buffered at once).
 //If the line was too long to fit into the buffer, returned length will be negative, but the next line will still get found correctly.
-static char *recv_next_line_buffered(int socket, char *buffer, int buffer_size, int *buffer_used, int *offset, int *len)
+static char *recv_next_line_buffered(int socket, char *buffer, int buffer_size, int *buffer_used, int *offset, int *len, int *recv_limit)
 {
 	int skipped_len = 0;
 	if (*offset > *buffer_used)
@@ -91,9 +98,19 @@ static char *recv_next_line_buffered(int socket, char *buffer, int buffer_size, 
 			*offset = 0;
 		}
 		
-		int done = recv(socket, buffer + *buffer_used, buffer_size - *buffer_used, 0);
+		int buffer_avail = buffer_size - *buffer_used;
+		if (recv_limit)
+			buffer_avail = MIN(buffer_avail, *recv_limit);
+		
+		if (buffer_avail <= 0)
+			return NULL;
+		
+		int done = recv(socket, buffer + *buffer_used, buffer_avail, 0);
 		if (done <= 0)
 			return NULL;
+		
+		if (recv_limit)
+			*recv_limit -= done;
 		
 		*buffer_used += done;		
 	}
@@ -164,6 +181,8 @@ static void parse_and_handle_http_request(http_connection ctx)
 	int header_buf_size = 0, header_buf_pos = 0, header_buf_used = 0;
 	char host[32];
 	host[0] = 0;
+	enum http_request_type reqtype = HTTP_GET;
+	ctx->post.remaining_input_len = ctx->post.buffer_used = ctx->post.buffer_pos = 0;
 	
 	if (len)
 	{
@@ -171,6 +190,9 @@ static void parse_and_handle_http_request(http_connection ctx)
 		char *p1 = strchr(ctx->buffer, ' '), *p2 = NULL, *p3 = NULL;
 		if (p1)
 			p2 = strchr(++p1, ' ');
+		
+		if (!strncasecmp(ctx->buffer, "POST ", 5))
+			reqtype = HTTP_POST;
 		
 		if (p2)
 			p3 = strstr(p2, "\r\n");
@@ -195,7 +217,7 @@ static void parse_and_handle_http_request(http_connection ctx)
 	
 	for (;;)
 	{
-		char *line = recv_next_line_buffered(ctx->socket, header_buf, header_buf_size, &header_buf_used, &header_buf_pos, &len);
+		char *line = recv_next_line_buffered(ctx->socket, header_buf, header_buf_size, &header_buf_used, &header_buf_pos, &len, NULL);
 		if (!line)
 		{
 			debug_printf("HTTP: unexpected end of headers");
@@ -210,6 +232,18 @@ static void parse_and_handle_http_request(http_connection ctx)
 			memcpy(host, line + 6, len - 6);
 			host[len - 6] = 0;
 		}
+		else if (!strncasecmp(line, "Content-length: ", 16))
+		{
+			ctx->post.remaining_input_len = atoi(line + 16);
+		}
+	}
+	
+	if (reqtype == HTTP_POST && ctx->post.remaining_input_len)
+	{
+		ctx->post.buffer_pos = header_buf_pos;
+		ctx->post.buffer_used = header_buf_used;
+		ctx->post.remaining_input_len -= (header_buf_used - header_buf_pos);
+		ctx->post.offset_from_main_buffer = header_buf - ctx->buffer;
 	}
 	
 	debug_printf("HTTP: %s%s\n", host, path);
@@ -248,7 +282,7 @@ static void parse_and_handle_http_request(http_connection ctx)
 				while (path[off] == '/')
 					off++;
 				
-				if (zone->handler(ctx, path + off, zone->context))
+				if (zone->handler(ctx, reqtype, path + off, zone->context))
 					return;
 			}
 		}
@@ -411,4 +445,29 @@ void http_server_end_write_reply(http_write_handle handle, const char *footer)
 		send_all(conn->socket, footer, len);
 	
 	conn->buffered_size = 0;
+}
+
+char *http_server_read_post_line(http_connection conn)
+{
+	if (conn->post.remaining_input_len <= 0 && conn->post.buffer_pos >= conn->post.buffer_used)
+		return NULL;
+	
+	int len = 0;
+	char *result = recv_next_line_buffered(conn->socket, 
+		conn->buffer + conn->post.offset_from_main_buffer,
+		conn->server->buffer_size - conn->post.offset_from_main_buffer,
+		&conn->post.buffer_used,
+		&conn->post.buffer_pos, 
+		&len,
+		&conn->post.remaining_input_len);
+	
+	if (!result)
+		return NULL;
+	
+	if (len < 0)
+		return NULL;	//Too long line got truncated
+	
+	result[len] = 0;
+	
+	return result;
 }

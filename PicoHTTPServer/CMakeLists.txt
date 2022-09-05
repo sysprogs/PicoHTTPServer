@@ -16,7 +16,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 function(add_resource_folder target name path)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${name}.fs ${CMAKE_CURRENT_BINARY_DIR}/__rerun_${name}.fs 
-		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/SimpleFSBuilder/SimpleFSBuilder
+		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../tools/SimpleFSBuilder/SimpleFSBuilder
 		ARGS ${path} ${CMAKE_CURRENT_BINARY_DIR}/${name}.fs
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
 		COMMENT "Generating ${name}.fs")

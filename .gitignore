@@ -1,3 +1,5 @@
 .visualgdb
 .vs
 build
+*.user
+CMakeLists.txt.old
