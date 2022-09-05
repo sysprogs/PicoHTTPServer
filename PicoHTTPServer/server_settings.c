@@ -11,11 +11,12 @@ const union
 	.settings = { 
 		.ip_address = 0x017BA8C0,
 		.network_mask = 0x00FFFFFF,
-		.secondary_address = 0x01010101,
+		.secondary_address = 0x006433c6,	//TEST-NET-2. See the comment before 'secondary_address' definition for details.
 		.network_name = WIFI_SSID,
 		.network_password = WIFI_PASSWORD,
 		.hostname = "picohttp",
-		.domain_name = "piconet.local"
+		.domain_name = "piconet.local",
+		.dns_ignores_network_suffix = true,
 	}
 };
 

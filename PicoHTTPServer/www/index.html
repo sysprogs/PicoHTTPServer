@@ -419,11 +419,12 @@ function apply_settings() {
 <h2>Demo HTTP server settings</h2>
 <table>
     <tr><td>Wi-Fi Network name (SSID):</td><td><input id="ssid" class="settings_field"></td></tr>
-    <tr><td colspan="2"><input id="has_password" type="checkbox" onchange="update_field_visibility()" class="settings_checkbox">Wi-Fi Network needs password</td></tr>
+    <tr><td colspan="2"><input id="has_password" type="checkbox" onchange="update_field_visibility()" class="settings_checkbox">Require Wi-Fi password for connecting</td></tr>
     <tr class="dynamic_row" data-condition="has_password"><td>Wi-Fi Password:</td><td><input id="password" class="settings_field"></td></tr>
     <tr><td>Host name:</td><td><input id="hostname" class="settings_field"></td></tr>
     <tr><td colspan="2"><input id="use_domain" type="checkbox" onchange="update_field_visibility()" class="settings_checkbox">Use a connection DNS suffix</td></tr>
     <tr class="dynamic_row" data-condition="use_domain"><td>DNS suffix:</td><td><input id="domain" class="settings_field"></td></tr>
+    <tr><td colspan="2"><input id="dns_ignores_network_suffix" type="checkbox" class="settings_checkbox">Ignore domain if host name matches</td></tr>
 
     <tr><td>IP address:</td><td><input id="ipaddr" class="settings_field"></td></tr>
     <tr><td>Network mask:</td><td><input id="netmask" class="settings_field"></td></tr>

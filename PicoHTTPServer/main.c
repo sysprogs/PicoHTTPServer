@@ -75,6 +75,8 @@ static char *parse_server_settings(http_connection conn, pico_server_settings *s
 			use_domain = !strcasecmp(p, "true") || p[0] == '1';
 		else if (!strcasecmp(line, "use_second_ip")) 
 			use_second_ip = !strcasecmp(p, "true") || p[0] == '1';
+		else if (!strcasecmp(line, "dns_ignores_network_suffix")) 
+			settings->dns_ignores_network_suffix = !strcasecmp(p, "true") || p[0] == '1';
 		else if (!strcasecmp(line, "ssid")) 
 		{
 			if (strlen(p) >= sizeof(settings->network_name))
@@ -235,6 +237,7 @@ static bool do_handle_api_call(http_connection conn, enum http_request_type type
 			http_server_write_reply(reply, ",\"netmask\" : \"%d.%d.%d.%d\"", (settings->network_mask >> 0) & 0xFF, (settings->network_mask >> 8) & 0xFF, (settings->network_mask >> 16) & 0xFF, (settings->network_mask >> 24) & 0xFF);
 			http_server_write_reply(reply, ",\"use_second_ip\": %d", settings->secondary_address != 0);
 			http_server_write_reply(reply, ",\"ipaddr2\" : \"%d.%d.%d.%d\"", (settings->secondary_address >> 0) & 0xFF, (settings->secondary_address >> 8) & 0xFF, (settings->secondary_address >> 16) & 0xFF, (settings->secondary_address >> 24) & 0xFF);
+			http_server_write_reply(reply, ",\"dns_ignores_network_suffix\" : %d", !!settings->dns_ignores_network_suffix);
 
 			http_server_end_write_reply(reply, "}");
 			return true;
@@ -286,7 +289,7 @@ static void main_task(__unused void *params)
 	// Start the dhcp server
 	static dhcp_server_t dhcp_server;
 	dhcp_server_init(&dhcp_server, &netif->ip_addr, &netif->netmask, settings->domain_name);
-	dns_server_init(netif->ip_addr.addr, settings->secondary_address, settings->hostname, settings->domain_name);
+	dns_server_init(netif->ip_addr.addr, settings->secondary_address, settings->hostname, settings->domain_name, settings->dns_ignores_network_suffix);
 	set_secondary_ip_address(settings->secondary_address);
 	http_server_instance server = http_server_create(settings->hostname, settings->domain_name, 4, 4096);
 	static http_zone zone1, zone2;

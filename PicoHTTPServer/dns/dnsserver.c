@@ -16,7 +16,8 @@ static struct
 	uint32_t secondary_ip;
 	const char *host_name; 
 	const char *domain_name;
-} s_DHCPServerSettings;
+	bool ignore_network_suffix;
+} s_DNSServerSettings;
 
 //DNS protocol definitions and parsing/formatting logic from https://github.com/devyte/ESPAsyncDNSServer/blob/master/src/ESPAsyncDNSServer.cpp
 struct DNSHeader
@@ -75,10 +76,10 @@ static const char *get_encoded_domain_name_component(const uint8_t *buffer, size
 static uint32_t get_address_for_encoded_domain(const uint8_t *buffer, size_t offset, size_t buffer_size)
 {
 	debug_printf("DNS server: ");
-	bool match = false;
+	bool match = false, loose_match = false;
 	
 	int domain_off = 0, domain_len = 0;
-	const char *domain_comp = get_next_domain_name_component(s_DHCPServerSettings.domain_name, &domain_off, &domain_len);
+	const char *domain_comp = get_next_domain_name_component(s_DNSServerSettings.domain_name, &domain_off, &domain_len);
 	
 	for (int i = 0; ; i++)
 	{
@@ -90,19 +91,23 @@ static uint32_t get_address_for_encoded_domain(const uint8_t *buffer, size_t off
 				debug_write(".", 1);
 			debug_write(component, len);
 			
-			if (i == 0 && !strncasecmp(component, s_DHCPServerSettings.host_name, len))
+			if (i == 0 && !strncasecmp(component, s_DNSServerSettings.host_name, len))
+			{
 				match = true;
+				if (s_DNSServerSettings.ignore_network_suffix)
+					loose_match = true;
+			}
 			else if (i > 0 && match && domain_comp && len == domain_len && !strncasecmp(component, domain_comp, len))
 			{
 				match = true;
-				domain_comp = get_next_domain_name_component(s_DHCPServerSettings.domain_name, &domain_off, &domain_len);
+				domain_comp = get_next_domain_name_component(s_DNSServerSettings.domain_name, &domain_off, &domain_len);
 			}
 			else
 				match = false;
 		}
 		else
 		{
-			uint32_t ip = match ? s_DHCPServerSettings.primary_ip : s_DHCPServerSettings.secondary_ip;
+			uint32_t ip = (match || loose_match) ? s_DNSServerSettings.primary_ip : s_DNSServerSettings.secondary_ip ;
 			debug_printf(" -> %d.%d.%d.%d\n", (ip >> 0) & 0xFF, (ip >> 8) & 0xFF, (ip >> 16) & 0xFF, (ip >> 24) & 0xFF);
 			return ip;
 		}
@@ -181,12 +186,14 @@ static void dns_server_thread(void *unused)
 void dns_server_init(uint32_t primary_ip,
 	uint32_t secondary_ip,
 	const char *host_name, 
-	const char *domain_name)
+	const char *domain_name,
+	bool dns_ignores_network_suffix)
 {
-	s_DHCPServerSettings.primary_ip = primary_ip;
-	s_DHCPServerSettings.secondary_ip = secondary_ip;
-	s_DHCPServerSettings.host_name = host_name;
-	s_DHCPServerSettings.domain_name = domain_name;
+	s_DNSServerSettings.primary_ip = primary_ip;
+	s_DNSServerSettings.secondary_ip = secondary_ip;
+	s_DNSServerSettings.host_name = host_name;
+	s_DNSServerSettings.domain_name = domain_name;
+	s_DNSServerSettings.ignore_network_suffix = dns_ignores_network_suffix;
 	
 	TaskHandle_t task;
 	xTaskCreate(dns_server_thread, "DNS server", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, &task);

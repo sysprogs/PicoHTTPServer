@@ -67,7 +67,7 @@
         <Configuration>
           <Board>pico_w</Board>
           <SSID>PicoHTTP</SSID>
-          <Password>PicoHTTP</Password>
+          <Password />
         </Configuration>
         <UnoptimizeDebugBuilds>true</UnoptimizeDebugBuilds>
         <ReferencedFrameworks>
