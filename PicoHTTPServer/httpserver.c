@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <pico/cyw43_arch.h>
 #include <pico/stdlib.h>
 
@@ -8,6 +9,7 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <task.h>
+
 #include "debug_printf.h"
 #include "httpserver.h"
 
@@ -25,6 +27,7 @@ struct _http_connection
 {
 	http_server_instance server;
 	int socket;
+	size_t buffered_size;
 	char buffer[1];
 };
 
@@ -363,4 +366,49 @@ void http_server_send_reply(http_connection conn, const char *code, const char *
 	int done = snprintf(conn->buffer, conn->server->buffer_size, "HTTP/1.0 %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n", code, contentType, size);
 	send_all(conn->socket, conn->buffer, done);
 	send_all(conn->socket, content, size);
+}
+
+http_write_handle http_server_begin_write_reply(http_connection conn, const char *code, const char *contentType)
+{
+	conn->buffered_size = snprintf(conn->buffer, conn->server->buffer_size, "HTTP/1.0 %s\r\nContent-Type: %s\r\nConnection: close\r\n\r\n", code, contentType);
+	return (http_write_handle)conn;
+}
+
+void http_server_write_reply(http_write_handle handle, const char *format, ...)
+{
+	http_connection conn = (http_connection)handle;
+	va_list args;
+	va_start(args, format);
+	int written = vsnprintf(conn->buffer + conn->buffered_size, conn->server->buffer_size - conn->buffered_size, format, args);
+	va_end(args);
+	if ((conn->buffered_size + written) < (conn->server->buffer_size - 16))
+	{
+		conn->buffered_size += written;
+		return;
+	}
+	
+	send_all(conn->socket, conn->buffer, conn->buffered_size);
+	va_start(args, format);
+	conn->buffered_size = vsnprintf(conn->buffer, conn->server->buffer_size, format, args);
+	va_end(args);
+}
+
+void http_server_end_write_reply(http_write_handle handle, const char *footer)
+{
+	http_connection conn = (http_connection)handle;
+	int len = footer ? strlen(footer) : 0;
+	if (len && len < (conn->server->buffer_size - conn->buffered_size))
+	{
+		memcpy(conn->buffer + conn->buffered_size, footer, len);
+		conn->buffered_size += len;
+		len = 0;
+	}
+	
+	if (conn->buffered_size)
+		send_all(conn->socket, conn->buffer, conn->buffered_size);
+	
+	if (len)
+		send_all(conn->socket, footer, len);
+	
+	conn->buffered_size = 0;
 }

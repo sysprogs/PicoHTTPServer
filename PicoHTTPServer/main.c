@@ -53,6 +53,73 @@ static bool do_retrieve_file(http_connection conn, char *path, void *context)
 	return false;
 }
 
+static bool do_handle_api_call(http_connection conn, char *path, void *context)
+{
+	static int s_InitializedMask = 0;
+	
+	if (!strcmp(path, "readpins"))
+	{
+		http_write_handle reply = http_server_begin_write_reply(conn, "200 OK", "text/json");
+		http_server_write_reply(reply, "{\"led0v\": \"%d\"", cyw43_arch_gpio_get(0));
+		
+		int values = gpio_get_all();
+		
+		for (int i = 0; i < 29; i++)
+		{
+			if (i > 22 && i < 26)
+				continue;
+			
+			if (s_InitializedMask & (1 << i))
+				http_server_write_reply(reply, ",\"gpio%dd\": \"%s\",\"gpio%dv\": \"%d\"", i, gpio_get_dir(i) ? "OUT" : "IN", i, (values >> i) & 1);
+		}
+		
+		http_server_end_write_reply(reply, "}");
+		return true;
+	}
+	else if (!memcmp(path, "writepin/", 9))
+	{
+		//e.g. 'writepin/led0?v=1'
+		char *port = path + 9;
+		char *arg = strchr(port, '?');
+		if (arg)
+		{
+			*arg++ = 0;
+			char *value = strchr(arg, '=');
+			*value++ = 0;
+		
+			if (!strcmp(port, "led0"))
+				cyw43_arch_gpio_put(0, value[0] == '1');
+			else if (!memcmp(port, "gpio", 4))
+			{
+				int gpio = atoi(port + 4);
+				if (!(s_InitializedMask & (1 << gpio)))
+				{
+					gpio_init(gpio);
+					s_InitializedMask |= (1 << gpio);
+				}
+
+				if (arg[0] == 'd' && value[0] == 'I')
+				{
+					gpio_set_pulls(gpio, true, false);
+					gpio_set_dir(gpio, GPIO_IN);
+				}
+				else
+				{
+					gpio_set_pulls(gpio, false, false);
+					gpio_set_dir(gpio, GPIO_OUT);
+
+					if (arg[0] == 'v')
+						gpio_put(gpio, value[0] == '1');
+				}
+			}
+			
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 
 static void main_task(__unused void *params)
 {
@@ -83,8 +150,9 @@ static void main_task(__unused void *params)
 	dhcp_server_init(&dhcp_server, &netif->ip_addr, &netif->netmask, settings->domain_name);
 	dns_server_init(netif->ip_addr.addr, settings->secondary_address, settings->hostname, settings->domain_name);
 	http_server_instance server = http_server_create(settings->hostname, settings->domain_name, 4, 4096);
-	static http_zone zone;
-	http_server_add_zone(server, &zone, "", do_retrieve_file, NULL);
+	static http_zone zone1, zone2;
+	http_server_add_zone(server, &zone1, "", do_retrieve_file, NULL);
+	http_server_add_zone(server, &zone2, "/api", do_handle_api_call, NULL);
 	vTaskDelete(NULL);
 }
 
@@ -96,8 +164,8 @@ void debug_printf(const char *format, ...)
 	va_start(args, format);
 	xSemaphoreTake(s_PrintfSemaphore, portMAX_DELAY);
 	vprintf(format, args);
-	xSemaphoreGive(s_PrintfSemaphore);
 	va_end(args);
+	xSemaphoreGive(s_PrintfSemaphore);
 }
 
 void debug_write(const void *data, int size)
