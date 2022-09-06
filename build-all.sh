@@ -1,6 +1,6 @@
 #!/bin/bash
 mkdir -p tools/SimpleFSBuilder/build
-mkdir -p tools/PicoHTTPServer/build
+mkdir -p PicoHTTPServer/build
 cmake -S tools/SimpleFSBuilder -B tools/SimpleFSBuilder/build
 make -C tools/SimpleFSBuilder/build || exit 1
 
