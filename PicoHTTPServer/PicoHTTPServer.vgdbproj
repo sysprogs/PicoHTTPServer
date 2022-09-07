@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<VisualGDBProjectSettings2 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<VisualGDBProjectSettings2 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Project xsi:type="com.visualgdb.project.external.raspberry_pi.pico">
     <CustomSourceDirectories>
       <Directories />
@@ -45,7 +45,7 @@
         <GroupTargetsByPaths>true</GroupTargetsByPaths>
         <FollowCMakeSourceGroups>false</FollowCMakeSourceGroups>
         <AutoRefreshProject>true</AutoRefreshProject>
-        <AlwaysConsiderOutdated>false</AlwaysConsiderOutdated>
+        <AlwaysConsiderOutdated>true</AlwaysConsiderOutdated>
         <SortTargetsByName>true</SortTargetsByName>
         <RedundantTargetMode>HideOuterProjectTargets</RedundantTargetMode>
         <SortSourcesByName>true</SortSourcesByName>
