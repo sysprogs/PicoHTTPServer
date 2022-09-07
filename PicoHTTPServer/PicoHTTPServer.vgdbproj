@@ -52,7 +52,26 @@
         <BuildAllTargetsInSubdir>false</BuildAllTargetsInSubdir>
         <FoldSingleItemPathLevels>true</FoldSingleItemPathLevels>
       </ProjectItemSettings>
-      <TargetSpecificSettings />
+      <TargetSpecificSettings>
+        <CMakeTargetSpecificSettings>
+          <TargetID>PicoHTTPServer</TargetID>
+          <Debug />
+          <Deployment>
+            <Mode>Auto</Mode>
+            <DeployIfNotSpecificallyReferenced>false</DeployIfNotSpecificallyReferenced>
+            <DoNotDeployVersionedBinaries>false</DoNotDeployVersionedBinaries>
+          </Deployment>
+          <HeaderDiscoveryMode>Default</HeaderDiscoveryMode>
+          <ResourceDirectories>
+            <ResourceDirectoryReference>
+              <Name>www</Name>
+              <RelativePath>www</RelativePath>
+              <FileMasks>*</FileMasks>
+              <IncludeSubdirectories>true</IncludeSubdirectories>
+            </ResourceDirectoryReference>
+          </ResourceDirectories>
+        </CMakeTargetSpecificSettings>
+      </TargetSpecificSettings>
       <SetLDLibraryPathFromDependentArtifacts>true</SetLDLibraryPathFromDependentArtifacts>
       <ProjectGUID>acc40d02-2301-4ca2-816d-2dc4079047df</ProjectGUID>
       <VirtualFolders />
