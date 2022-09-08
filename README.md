@@ -83,3 +83,7 @@ You can download the pre-built binary of the HTTP server from the [releases](htt
 The easiest way to build the sources on Windows is to install [VisualGDB](https://visualgdb.com/) and open the `PicoHTTPServer.sln` file in Visual Studio. VisualGDB will automatically install the necessary toolchain/SDK and will manage build and debugging for you.
 
 You can also build the project manually by running the [build-all.sh](https://github.com/sysprogs/PicoHTTPServer/blob/master/build-all.sh) file. Make sure you have CMake and GNU Make installed, and that you have the ARM GCC (arm-none-eabi) in the PATH.
+
+## Modifying the App
+
+See [this tutorial](https://visualgdb.com/tutorials/raspberry/pico_w/http/) for detailed step-by-step instructions on adding a new dialog and the corresponding API to the app, as well as testing it out on the hardware.
