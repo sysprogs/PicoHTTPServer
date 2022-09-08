@@ -247,6 +247,62 @@ static bool do_handle_api_call(http_connection conn, enum http_request_type type
 	return false;
 }
 
+xSemaphoreHandle s_BlinkSemaphore;
+static int s_BlinkPeriod = 1000;
+
+static void blink_task(void *arg)
+{
+    static bool on = false;
+    for (;;)
+    {
+        xSemaphoreTake(s_BlinkSemaphore, pdMS_TO_TICKS(s_BlinkPeriod));
+        cyw43_arch_gpio_put(0, on = !on);
+    }
+}
+
+static bool do_handle_blink_api_call(http_connection conn, enum http_request_type type, char *path, void *context)
+{
+    static TaskHandle_t s_BlinkTask;
+    if (!strcmp(path, "start"))
+    {
+        if (!s_BlinkSemaphore)
+            s_BlinkSemaphore = xSemaphoreCreateCounting(1, 0);
+
+        if (!s_BlinkTask)
+			xTaskCreate(blink_task, "Blink", configMINIMAL_STACK_SIZE, NULL, TEST_TASK_PRIORITY, &s_BlinkTask);
+
+        http_server_send_reply(conn, "200 OK", "text/plain", "OK", -1);
+        return true;
+    }
+    else if (!strcmp(path, "stop"))
+    {
+        if (s_BlinkTask)
+        {
+            vTaskDelete(s_BlinkTask);
+            s_BlinkTask = NULL;
+        }
+        http_server_send_reply(conn, "200 OK", "text/plain", "OK", -1);
+        cyw43_arch_gpio_put(0, false);
+        return true;
+    }
+    else if (!strcmp(path, "period"))
+    {
+        char *line = http_server_read_post_line(conn);
+        int period = line ? atoi(line) : 0;
+        if (period)
+        {
+            s_BlinkPeriod = period;
+            xSemaphoreGive(s_BlinkSemaphore);
+            http_server_send_reply(conn, "200 OK", "text/plain", "OK", -1);
+        }
+        else
+            http_server_send_reply(conn, "200 OK", "text/plain", "Invalid period!", -1);
+
+        return true;
+    }
+    else
+        return false;
+}
 
 static void set_secondary_ip_address(int address)
 {
@@ -292,9 +348,10 @@ static void main_task(__unused void *params)
 	dns_server_init(netif->ip_addr.addr, settings->secondary_address, settings->hostname, settings->domain_name, settings->dns_ignores_network_suffix);
 	set_secondary_ip_address(settings->secondary_address);
 	http_server_instance server = http_server_create(settings->hostname, settings->domain_name, 4, 4096);
-	static http_zone zone1, zone2;
+	static http_zone zone1, zone2, zone3;
 	http_server_add_zone(server, &zone1, "", do_retrieve_file, NULL);
 	http_server_add_zone(server, &zone2, "/api", do_handle_api_call, NULL);
+	http_server_add_zone(server, &zone3, "/api/blink", do_handle_blink_api_call, NULL);
 	vTaskDelete(NULL);
 }
 

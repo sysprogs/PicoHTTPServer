@@ -207,6 +207,36 @@ body {
   cursor: pointer;
 }
 
+.blink_popup {
+    width: 500px;
+    padding: 0;
+}
+
+.setting_table {
+    display: grid;
+    grid-gap: 5px;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+}
+
+.popup_header {
+    background: blue;
+    margin: 0;
+    padding: 10px 20px;
+    color: white;
+    font-size: 22;
+    display: flex;
+    justify-content: space-between;
+}
+
+.popup_body {
+    margin: 0 20px;
+}
+
+.popup_footer {
+    margin: 0 20px 20px 20px;
+}
+
 </style>
 <script language="JavaScript">
 
@@ -352,6 +382,28 @@ function apply_settings() {
     };  
 }
 
+function show_blink_popup(show) {
+    document.getElementById("popup_root").style.display = show ? "block" : "none";
+    document.getElementById("blink_popup").style.display = show ? "block" : "none";
+}
+
+function call_blink_api(path, content = null) {
+    let xhr = new XMLHttpRequest();
+    xhr.open(content ? "POST" : "GET", '/api/blink/' + path, true);
+    if (content)
+        xhr.setRequestHeader("Content-Type", "text/plain");
+
+    xhr.onloadend = function () {
+        if (this.responseText != "OK")
+            alert(this.responseText);
+    };  
+
+    if (content)
+        xhr.send(content + "\r\n");
+    else
+        xhr.send();
+}
+
 </script>
 
 </head>
@@ -359,7 +411,10 @@ function apply_settings() {
 <body onload="init_page()">
 <div class="main">
 <div class="header">
-<h1>Raspberry Pi Pico W Demo <a href="javascript:edit_settings()" class="settings_link"><img style="width: 32px; height: 32px; margin: 0px;" src="img/configure.png"></a></h1>
+<h1>Raspberry Pi Pico W Demo
+    <a href="javascript:edit_settings()" class="settings_link"><img style="width: 32px; height: 32px; margin: 0px;" src="img/configure.png"></a>
+    <a href="javascript:show_blink_popup(true)" class="settings_link"><img style="width: 32px; height: 32px; margin: 0px;" src="img/stopwatch.png"></a>
+</h1>
 <p>Use the selectors below to change the modes and values of GPIO pins:</p>
 </div>
 <div class="pinout">
@@ -439,6 +494,25 @@ function apply_settings() {
         <div>
             <button onclick="apply_settings()">OK</button>
             <button onclick="show_settings_popup(false)">Cancel</button>
+        </div>
+    </div>
+
+    <div id="blink_popup" class="blink_popup modal_popup">
+        <div class="popup_header">
+            <span>LED Blinking Demo</span>
+            <span class="close_button" style="cursor: pointer;" onclick="show_blink_popup(false)">&times;</span>
+        </div>
+        <div class="popup_body">
+            <div class="setting_table">
+                <span>Blinking period:</span>
+                <input id="blink_period" value="1000"/>
+                <span>ms</span>
+                <button onclick="call_blink_api('period', document.getElementById('blink_period').value)">Update</button>
+            </div>
+        </div>
+        <div class="popup_footer">
+            <button onclick="call_blink_api('start')">Start</button>
+            <button onclick="call_blink_api('stop')">Stop</button>
         </div>
     </div>
 </div>
