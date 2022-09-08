@@ -1,6 +1,6 @@
 [![license](https://img.shields.io/github/license/sysprogs/PicoHTTPServer?style=flat-square)](https://github.com/sysprogs/PicoHTTPServer)
 
-# PicoHTTPServer: Control your Raspberry Pi Pico W pins from any browser
+# PicoHTTPServer: Host responsive Web Apps on Raspberry Pi Pico W
 
 This project turns your Raspberry Pi Pico W into a Wi-Fi access-point. Connecting to it from your computer, tablet or phone will automatically redirect you to a page allowing to control individual pins of the board:
 
