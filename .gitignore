@@ -4,3 +4,4 @@ build
 *.user
 CMakeLists.txt.old
 pico-sdk
+.DS_Store
