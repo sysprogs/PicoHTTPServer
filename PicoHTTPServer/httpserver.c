@@ -376,6 +376,7 @@ http_server_instance http_server_create(const char *main_host, const char *main_
 	ctx->hostname = main_host;
 	ctx->domain_name = main_domain;
 	ctx->buffer_size = buffer_size;
+	ctx->first_zone = NULL;
 	
 	TaskHandle_t task;
 	xTaskCreate(http_server_thread, "HTTP Server", configMINIMAL_STACK_SIZE, ctx, tskIDLE_PRIORITY + 2, &task);
